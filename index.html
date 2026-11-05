@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Calculator</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f2f2f2; font-family: system-ui, sans-serif; }
+  .calc { width: 280px; padding: 16px; background: #fff; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.15); }
+  #display { box-sizing: border-box; width: 100%; height: 56px; margin-bottom: 12px; padding: 0 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 24px; text-align: right; background: #fff; color: #000; }
+  .keys { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  button { height: 52px; border: 0; border-radius: 8px; font-size: 18px; background: #e8e8e8; color: #000; cursor: pointer; }
+  button:hover { filter: brightness(.95); }
+  .op { background: #ffb74d; }
+  .eq { background: #4caf50; color: #fff; }
+  .wide { grid-column: span 2; }
+</style>
+</head>
+<body>
+<div class="calc">
+  <input id="display" value="0" readonly aria-label="Display">
+  <div class="keys">
+    <button class="wide" data-action="clear">C</button>
+    <button data-action="back">⌫</button>
+    <button class="op" data-op="/">÷</button>
+    <button data-digit="7">7</button>
+    <button data-digit="8">8</button>
+    <button data-digit="9">9</button>
+    <button class="op" data-op="*">×</button>
+    <button data-digit="4">4</button>
+    <button data-digit="5">5</button>
+    <button data-digit="6">6</button>
+    <button class="op" data-op="-">−</button>
+    <button data-digit="1">1</button>
+    <button data-digit="2">2</button>
+    <button data-digit="3">3</button>
+    <button class="op" data-op="+">+</button>
+    <button class="wide" data-digit="0">0</button>
+    <button data-digit=".">.</button>
+    <button class="eq" data-action="equals">=</button>
+  </div>
+</div>
+<script>
+  const display = document.getElementById('display');
+  let current = '0', stored = null, op = null, fresh = true;
+
+  const show = () => { display.value = current; };
+  const compute = (a, b, o) => {
+    if (o === '+') return a + b;
+    if (o === '-') return a - b;
+    if (o === '*') return a * b;
+    return b === 0 ? NaN : a / b;
+  };
+  const format = n => Number.isFinite(n) ? String(parseFloat(n.toPrecision(12))) : 'Error';
+
+  function digit(d) {
+    if (current === 'Error') fresh = true;
+    if (fresh) { current = d === '.' ? '0.' : d; fresh = false; }
+    else if (d === '.' && current.includes('.')) return;
+    else current = current === '0' && d !== '.' ? d : current + d;
+    show();
+  }
+  function evaluate() {
+    if (op === null || stored === null) return;
+    current = format(compute(stored, parseFloat(current), op));
+    stored = null; op = null; fresh = true;
+    show();
+  }
+  function setOp(o) {
+    if (current === 'Error') return;
+    if (op !== null && !fresh) evaluate();
+    stored = parseFloat(current); op = o; fresh = true;
+  }
+  function clearAll() { current = '0'; stored = null; op = null; fresh = true; show(); }
+  function back() {
+    if (fresh || current === 'Error') return;
+    current = current.length > 1 ? current.slice(0, -1) : '0';
+    show();
+  }
+
+  document.querySelector('.keys').addEventListener('click', e => {
+    const b = e.target.closest('button');
+    if (!b) return;
+    if (b.dataset.digit !== undefined) digit(b.dataset.digit);
+    else if (b.dataset.op) setOp(b.dataset.op);
+    else if (b.dataset.action === 'clear') clearAll();
+    else if (b.dataset.action === 'back') back();
+    else if (b.dataset.action === 'equals') evaluate();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (/^[0-9.]$/.test(e.key)) digit(e.key);
+    else if ('+-*/'.includes(e.key)) { e.preventDefault(); setOp(e.key); }
+    else if (e.key === 'Enter' || e.key === '=') { e.preventDefault(); evaluate(); }
+    else if (e.key === 'Backspace') back();
+    else if (e.key === 'Escape') clearAll();
+  });
+</script>
+</body>
+</html>
